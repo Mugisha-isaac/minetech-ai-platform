@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: minetech-ai
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/minetech}
+    username: ${SPRING_DATASOURCE_USERNAME:minetech}
+    password: ${SPRING_DATASOURCE_PASSWORD:minetech_secret}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:qwen2.5:1.5b}
+          temperature: 0.1
+          num-ctx: 4096
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+
+    vectorstore:
+      pgvector:
+        index-type: IVFFLAT
+        distance-type: COSINE_DISTANCE
+        dimensions: 768
+        initialize-schema: false   # we handle schema via init.sql
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    com.minetech: DEBUG
+    org.springframework.ai: INFO

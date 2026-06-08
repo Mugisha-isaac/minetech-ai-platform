@@ -1,0 +1,114 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: minetech-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: minetech
+      POSTGRES_USER: minetech
+      POSTGRES_PASSWORD: minetech_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minetech -d minetech"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - minetech-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: minetech-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    networks:
+      - minetech-net
+
+  ollama-init:
+    image: curlimages/curl:latest
+    container_name: minetech-ollama-init
+    depends_on:
+      - ollama
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...';
+        until curl -sf http://ollama:11434/api/tags > /dev/null; do sleep 3; done;
+        echo 'Pulling qwen2.5:1.5b model...';
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"qwen2.5:1.5b\"}';
+        echo 'Pulling nomic-embed-text for embeddings...';
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"nomic-embed-text\"}';
+        echo 'Models ready.';
+      "
+    networks:
+      - minetech-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minetech-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/minetech
+      SPRING_DATASOURCE_USERNAME: minetech
+      SPRING_DATASOURCE_PASSWORD: minetech_secret
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:1.5b
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+    ports:
+      - "8080:8080"
+    networks:
+      - minetech-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: minetech-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    networks:
+      - minetech-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: minetech-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - minetech-net
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  minetech-net:
+    driver: bridge
