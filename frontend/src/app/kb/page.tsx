@@ -11,6 +11,7 @@ import {
   Trash2,
   FileType,
   X,
+  FileIcon
 } from "lucide-react";
 
 type KbDoc = { id: number; title: string; filename: string; createdAt: string };
@@ -188,7 +189,7 @@ export default function KbPage() {
                 : "text-slate-500 hover:text-slate-300 border border-transparent"
             }`}
           >
-            {m === "file" ? "📎 Upload File" : "📋 Paste Text"}
+            {m === "file" ? "  Upload File" : "📋 Paste Text"}
           </button>
         ))}
       </div>
