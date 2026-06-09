@@ -27,8 +27,7 @@ public class DataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         try {
             // Check if vector_store already has data
-            List<Document> existing = vectorStore.similaritySearch(
-                    SearchRequest.builder().query("safety").topK(1).build());
+            List<Document> existing = vectorStore.similaritySearch(SearchRequest.builder().query("safety").topK(1).build());
 
             if (!existing.isEmpty()) {
                 log.info("Vector store already populated ({} results for test query) — skipping auto-embed.", existing.size());

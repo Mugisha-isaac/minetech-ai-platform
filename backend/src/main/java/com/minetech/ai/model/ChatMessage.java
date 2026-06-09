@@ -26,14 +26,14 @@ public class ChatMessage {
     private ChatSession session;
 
     @Column(name = "role", nullable = false)
-    private String role; // USER | ASSISTANT
+    private String role;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "citations", columnDefinition = "jsonb")
-    private String citations; // JSON array of citation objects
+    private String citations;
 
     @Column(name = "grounded")
     @Builder.Default

@@ -1,7 +1,6 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 const API  = `${BASE}/api`;
 
-// ── Triage ──────────────────────────────────────────────────────────────────
 
 export async function submitTriage(text: string) {
   const res = await fetch(`${API}/triage`, {
@@ -28,7 +27,6 @@ export async function getCategories(): Promise<string[]> {
   return res.json();
 }
 
-// ── Chat ─────────────────────────────────────────────────────────────────────
 
 export async function sendChatMessage(message: string, sessionId?: string) {
   const res = await fetch(`${API}/chat`, {

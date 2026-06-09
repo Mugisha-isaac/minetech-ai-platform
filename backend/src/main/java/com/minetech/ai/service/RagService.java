@@ -39,7 +39,7 @@ public class RagService {
     private final KbDocumentRepository   documentRepository;
     private final FileTextExtractor      fileTextExtractor;
 
-    private static final double NOT_GROUNDED_THRESHOLD = 0.0; // chunks returned = grounded
+    private static final double NOT_GROUNDED_THRESHOLD = 0.0;
     private static final int    TOP_K                  = 3;
 
     private static final String RAG_PROMPT = """

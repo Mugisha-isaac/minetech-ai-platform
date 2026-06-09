@@ -26,14 +26,6 @@ public class TriageService {
     private final TriageTicketRepository repository;
     private final ObjectMapper objectMapper;
 
-    // ── Deliberate design decision on schema ────────────────────────────────
-    // Categories are mining-domain specific. Priority is a 4-level enum
-    // (CRITICAL/HIGH/MEDIUM/LOW) mapped to SLA response times:
-    //   CRITICAL = immediate (safety/production stoppage)
-    //   HIGH     = 2 hours   (major equipment fault)
-    //   MEDIUM   = 8 hours   (partial degradation)
-    //   LOW      = 24 hours  (informational/routine)
-    // ────────────────────────────────────────────────────────────────────────
 
     private static final String TRIAGE_PROMPT = """
             You are an AI assistant for a mining operations platform. Analyze the following support ticket or incident report and return a JSON object ONLY — no explanation, no markdown, no extra text.
@@ -60,7 +52,6 @@ public class TriageService {
             """;
 
     public TriageResponse processTicket(String rawInput) {
-        // Save ticket with PENDING status first
         TriageTicket ticket = repository.save(TriageTicket.builder()
                 .rawInput(rawInput)
                 .status("PENDING")
@@ -110,17 +101,14 @@ public class TriageService {
         return repository.findDistinctCategories();
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
 
     private String callLlm(String ticketText) {
         PromptTemplate template = new PromptTemplate(TRIAGE_PROMPT);
         Prompt prompt = template.create(Map.of("ticketText", ticketText));
-        // Spring AI 1.0.x: getOutput().getText()
         return chatModel.call(prompt).getResult().getOutput().getText();
     }
 
     private TriageResult parseJson(String llmOutput) throws Exception {
-        // Strategy 1: direct parse
         String cleaned = llmOutput.trim();
         try {
             return objectMapper.readValue(cleaned, TriageResult.class);
@@ -128,8 +116,7 @@ public class TriageService {
             log.debug("Direct parse failed, trying JSON extraction: {}", e1.getMessage());
         }
 
-        // Strategy 2: extract JSON block (handles markdown fences the model sometimes adds)
-        Pattern jsonPattern = Pattern.compile("\\{[\\s\\S]*\\}", Pattern.MULTILINE);
+        Pattern jsonPattern = Pattern.compile("\\{[\\s\\S]*}", Pattern.MULTILINE);
         Matcher matcher = jsonPattern.matcher(cleaned);
         if (matcher.find()) {
             try {
@@ -139,7 +126,6 @@ public class TriageService {
             }
         }
 
-        // Strategy 3: graceful degradation — return a partial result rather than failing
         log.warn("Could not parse structured output — returning partial result");
         return TriageResult.builder()
                 .category("General")

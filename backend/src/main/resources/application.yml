@@ -38,7 +38,7 @@ spring:
         index-type: IVFFLAT
         distance-type: COSINE_DISTANCE
         dimensions: 768
-        initialize-schema: false   # we handle schema via init.sql
+        initialize-schema: false
 
   servlet:
     multipart:
