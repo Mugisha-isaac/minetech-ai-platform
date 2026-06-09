@@ -2,6 +2,7 @@ package com.minetech.ai.config;
 
 import com.minetech.ai.model.KbDocument;
 import com.minetech.ai.repository.KbDocumentRepository;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -26,7 +27,6 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            // Check if vector_store already has data
             List<Document> existing = vectorStore.similaritySearch(SearchRequest.builder().query("safety").topK(1).build());
 
             if (!existing.isEmpty()) {
@@ -73,6 +73,11 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private List<String> chunkText(String text) {
+        return getStrings(text);
+    }
+
+    @NonNull
+    public static List<String> getStrings(String text) {
         List<String> chunks = new ArrayList<>();
         String[] paragraphs = text.split("\n\n+");
         StringBuilder current = new StringBuilder();

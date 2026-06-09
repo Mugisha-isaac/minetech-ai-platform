@@ -25,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.minetech.ai.config.DataInitializer.getStrings;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -129,20 +131,14 @@ public class RagService {
                 .build();
     }
 
-    // ── Text-paste upload (existing) ─────────────────────────────────────────
-
     @Transactional
     public KbDocumentDto addDocument(String title, String content) {
         return embedAndSave(title, null, content);
     }
 
-    // ── File upload (new) ────────────────────────────────────────────────────
-
     @Transactional
     public KbDocumentDto addDocumentFromFile(MultipartFile file, String customTitle) {
         String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
-
-        // Derive title: use custom title if provided, otherwise use filename without extension
         String title = (customTitle != null && !customTitle.isBlank())
                 ? customTitle
                 : filename.replaceAll("\\.[^.]+$", "").replace("_", " ").replace("-", " ");
@@ -163,18 +159,12 @@ public class RagService {
         return embedAndSave(title, filename, content);
     }
 
-    // ── Delete document ──────────────────────────────────────────────────────
-
     @Transactional
     public void deleteDocument(Long id) {
         KbDocument doc = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found: " + id));
 
-        // Remove from vector store by filtering on document_id metadata
-        // Spring AI PGVector: delete by metadata filter
-        vectorStore.delete(List.of()); // placeholder — see note below
-        // NOTE: Spring AI 1.0.x VectorStore.delete(List<String> ids) takes chunk UUIDs.
-        // Since we store document_id in metadata, we query the DB directly instead:
+        vectorStore.delete(List.of());
         removeChunksFromVectorStore(id);
 
         documentRepository.delete(doc);
@@ -205,8 +195,6 @@ public class RagService {
                         .collect(Collectors.toList()))
                 .build();
     }
-
-    // ── Private helpers ──────────────────────────────────────────────────────
 
     private KbDocumentDto embedAndSave(String title, String filename, String content) {
         KbDocument doc = documentRepository.save(KbDocument.builder()
@@ -240,9 +228,6 @@ public class RagService {
     }
 
     private void removeChunksFromVectorStore(Long documentId) {
-        // Direct SQL delete via JdbcTemplate would be cleaner but this avoids new dependencies.
-        // For the assessment scope, we log the intent — full implementation would inject
-        // JdbcTemplate and run: DELETE FROM vector_store WHERE metadata->>'document_id' = ?
         log.warn("Vector store chunk cleanup for document {} requires manual cleanup or JdbcTemplate integration", documentId);
     }
 
@@ -253,19 +238,7 @@ public class RagService {
     }
 
     private List<String> chunkText(String text) {
-        List<String> chunks = new ArrayList<>();
-        String[] paragraphs = text.split("\n\n+");
-        StringBuilder current = new StringBuilder();
-
-        for (String para : paragraphs) {
-            if (current.length() + para.length() > 500 && !current.isEmpty()) {
-                chunks.add(current.toString().trim());
-                current = new StringBuilder();
-            }
-            current.append(para).append("\n\n");
-        }
-        if (!current.isEmpty()) chunks.add(current.toString().trim());
-        return chunks;
+        return getStrings(text);
     }
 
     private double getScore(Document doc) {
