@@ -15,7 +15,6 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,6 @@ import static com.minetech.ai.config.DataInitializer.getStrings;
 public class RagService {
 
     private final ChatModel              chatModel;
-    private final EmbeddingModel         embeddingModel;
     private final VectorStore            vectorStore;
     private final ObjectMapper           objectMapper;
     private final ChatSessionRepository  sessionRepository;
@@ -41,8 +39,7 @@ public class RagService {
     private final KbDocumentRepository   documentRepository;
     private final FileTextExtractor      fileTextExtractor;
 
-    private static final double NOT_GROUNDED_THRESHOLD = 0.0;
-    private static final int    TOP_K                  = 3;
+    private static final int    TOP_K = 3;
 
     private static final String RAG_PROMPT = """
             You are a knowledgeable assistant for MineTech mining operations. Answer the user's question based ONLY on the provided context documents below.
@@ -183,8 +180,7 @@ public class RagService {
     }
 
     public SessionHistoryResponse getHistory(UUID sessionId) {
-        ChatSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+        ChatSession session = sessionRepository.findById(sessionId).orElseThrow(() -> new RuntimeException("Session not found"));
         List<ChatMessage> messages = messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
 
         return SessionHistoryResponse.builder()
@@ -239,12 +235,6 @@ public class RagService {
 
     private List<String> chunkText(String text) {
         return getStrings(text);
-    }
-
-    private double getScore(Document doc) {
-        Object score = doc.getMetadata().get("distance");
-        if (score instanceof Number n) return 1.0 - n.doubleValue();
-        return 1.0;
     }
 
     private int toInt(Object value) {

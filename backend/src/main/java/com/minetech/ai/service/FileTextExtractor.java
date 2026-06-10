@@ -17,9 +17,7 @@ import java.util.stream.Collectors;
 public class FileTextExtractor {
 
     public String extract(MultipartFile file) throws Exception {
-        String filename = file.getOriginalFilename() != null
-                ? file.getOriginalFilename().toLowerCase()
-                : "";
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
 
         if (filename.endsWith(".pdf")) {
             return extractPdf(file);
@@ -39,8 +37,7 @@ public class FileTextExtractor {
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(doc);
             if (text == null || text.isBlank()) {
-                throw new RuntimeException(
-                        "PDF appears to be image-based (scanned). Only text-layer PDFs are supported.");
+                throw new RuntimeException("PDF appears to be image-based (scanned). Only text-layer PDFs are supported.");
             }
             return text.trim();
         }
